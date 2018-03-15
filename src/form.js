@@ -1,89 +1,90 @@
+'use strict';
 angular.module('angularPayments')
 
-.directive('stripeForm', ['$window', '$parse', 'Common', function($window, $parse, Common) {
-    
-  // directive intercepts form-submission, obtains Stripe's cardToken using stripe.js
-  // and then passes that to callback provided in stripeForm, attribute.
+  .directive('stripeForm', ['$window', '$parse', 'Common', function ($window, $parse, Common) {
 
-  // data that is sent to stripe is filtered from scope, looking for valid values to
-  // send and converting camelCase to snake_case, e.g expMonth -> exp_month
+    // directive intercepts form-submission, obtains Stripe's cardToken using stripe.js
+    // and then passes that to callback provided in stripeForm, attribute.
+
+    // data that is sent to stripe is filtered from scope, looking for valid values to
+    // send and converting camelCase to snake_case, e.g expMonth -> exp_month
 
 
-  // filter valid stripe-values from scope and convert them from camelCase to snake_case
-  _getDataToSend = function(data){
-           
-    var possibleKeys = ['number', 'expMonth', 'expYear', 
-                    'cvc', 'name','addressLine1', 
-                    'addressLine2', 'addressCity',
-                    'addressState', 'addressZip',
-                    'addressCountry']
-    
-    var camelToSnake = function(str){
-      return str.replace(/([A-Z])/g, function(m){
-        return "_"+m.toLowerCase();
-      });
-    }
+    // filter valid stripe-values from scope and convert them from camelCase to snake_case
+    _getDataToSend = function (data) {
 
-    var ret = {};
+      var possibleKeys = ['number', 'expMonth', 'expYear',
+        'cvc', 'name', 'addressLine1',
+        'addressLine2', 'addressCity',
+        'addressState', 'addressZip',
+        'addressCountry'];
 
-    for(i in possibleKeys){
-        if(data.hasOwnProperty(possibleKeys[i])){
-            ret[camelToSnake(possibleKeys[i])] = angular.copy(data[possibleKeys[i]]);
+      var camelToSnake = function (str) {
+        return str.replace(/([A-Z])/g, function (m) {
+          return '_' + m.toLowerCase();
+        });
+      };
+
+      var ret = {};
+
+      for (i in possibleKeys) {
+        if (data.hasOwnProperty(possibleKeys[i])) {
+          ret[camelToSnake(possibleKeys[i])] = angular.copy(data[possibleKeys[i]]);
         }
-    }
-
-    ret['number'] = (ret['number'] || '').replace(/ /g,'');
-
-    return ret;
-  }
-
-  return {
-    restrict: 'A',
-    link: function(scope, elem, attr) {
-
-      if(!$window.Stripe){
-          throw 'stripeForm requires that you have stripe.js installed. Include https://js.stripe.com/v2/ into your html.';
       }
 
-      var form = angular.element(elem);
+      ret['number'] = (ret['number'] || '').replace(/ /g, '');
 
-      form.bind('submit', function() {
+      return ret;
+    };
 
-        expMonthUsed = scope.expMonth ? true : false;
-        expYearUsed = scope.expYear ? true : false;
+    return {
+      restrict: 'A',
+      link: function (scope, elem, attr) {
 
-        if(!(expMonthUsed && expYearUsed)){
-          exp = Common.parseExpiry(scope.expiry)
-          scope.expMonth = exp.month
-          scope.expYear = exp.year
+        if (!$window.Stripe) {
+          throw 'stripeForm requires that you have stripe.js installed. Include https://js.stripe.com/v2/ into your html.';
         }
 
-        var button = form.find('button');
-        button.prop('disabled', true);
+        var form = angular.element(elem);
 
-        if(form.hasClass('ng-valid')) {
-          
+        form.bind('submit', function () {
 
-          $window.Stripe.createToken(_getDataToSend(scope), function() {
-            var args = arguments;
-            scope.$apply(function() {
-              scope[attr.stripeForm].apply(scope, args);
+          expMonthUsed = !!scope.expMonth;
+          expYearUsed = !!scope.expYear;
+
+          if (!(expMonthUsed && expYearUsed)) {
+            exp = Common.parseExpiry(scope.expiry);
+            scope.expMonth = exp.month;
+            scope.expYear = exp.year;
+          }
+
+          var button = form.find('button');
+          button.prop('disabled', true);
+
+          if (form.hasClass('ng-valid')) {
+
+
+            $window.Stripe.createToken(_getDataToSend(scope), function () {
+              var args = arguments;
+              scope.$apply(function () {
+                scope[attr.stripeForm].apply(scope, args);
+              });
+              button.prop('disabled', false);
+
+            });
+
+          } else {
+            scope.$apply(function () {
+              scope[attr.stripeForm].apply(scope, [400, {error: 'Invalid form submitted.'}]);
             });
             button.prop('disabled', false);
+          }
 
-          });
+          scope.expMonth = null;
+          scope.expYear = null;
 
-        } else {
-          scope.$apply(function() {
-            scope[attr.stripeForm].apply(scope, [400, {error: 'Invalid form submitted.'}]);
-          });
-          button.prop('disabled', false);
-        }
-
-        scope.expMonth = null;
-        scope.expYear  = null;
-
-      });
-    }
-  }
-}]);
+        });
+      }
+    };
+  }]);

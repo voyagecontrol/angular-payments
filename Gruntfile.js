@@ -1,4 +1,5 @@
-module.exports = function(grunt) {
+'use strict';
+module.exports = function (grunt) {
 
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
@@ -7,12 +8,12 @@ module.exports = function(grunt) {
         separator: ';'
       },
       dist: {
-        src: ['src/module.js', 
-              'src/common.js',
-              'src/cards.js',
-              'src/format.js',
-              'src/validate.js',
-              'src/form.js'],
+        src: ['src/module.js',
+          'src/common.js',
+          'src/cards.js',
+          'src/format.js',
+          'src/validate.js',
+          'src/form.js'],
         dest: 'lib/<%= pkg.name %>.js'
       }
     },
